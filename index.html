@@ -81,7 +81,7 @@ body{display:flex;align-items:center;justify-content:center}
 
 <div id="toast" hidden></div>
 <div class="ov" id="start">
-<h1>TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ</h1>
+<h1 id="gt">TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ</h1>
 <p>2 đội cùng trả lời một câu hỏi trên màn hình chia đôi. Mỗi câu có 2 đáp án – vẫy tay hoặc đưa đầu về phía đáp án đúng trước camera để chọn. Đúng và nhanh sẽ được nhiều điểm hơn!</p>
 <p id="rot">↻ Hãy xoay ngang điện thoại để chơi toàn màn hình.</p>
 <p id="cs">Camera chưa bật – vẫn có thể chơi bằng phím hoặc chạm.</p>
@@ -110,12 +110,24 @@ body{display:flex;align-items:center;justify-content:center}
 <div id="ed" hidden><div class="w">
 <h2>✏️ Soạn câu hỏi</h2>
 <div class="cfg">
-<label>Tên đội 1<input id="e1"></label><label>Tên đội 2<input id="e2"></label>
+<label style="flex:1 1 100%">Tên trò chơi (hiện ở màn hình đầu)<input id="etl" style="width:100%"></label><label>Tên đội 1<input id="e1"></label><label>Tên đội 2<input id="e2"></label>
 <label>Thời gian mỗi câu (giây)<input id="et" type="number" min="5" max="120"></label>
 <label>Độ nhạy cử chỉ (1–10)<input id="es2" type="number" min="1" max="10"></label>
 </div>
+<div id="ip" hidden style="background:#141b36;border:1px solid #fff3;border-radius:10px;padding:12px;margin-bottom:12px">
+<b>📥 Nhập câu hỏi hàng loạt</b>
+<p style="font-size:13px;opacity:.9;margin:6px 0;line-height:1.5">Dán văn bản vào ô dưới hoặc chọn file .txt / .csv (mã hóa UTF-8). Có 2 kiểu:<br>
+<b>Kiểu 1 – mỗi câu một dòng</b>, ngăn cách bằng <code>|</code>, phím Tab hoặc dấu <code>;</code> (có thể dán thẳng 3 cột từ Excel):<br>
+<code>Câu hỏi | Đáp án đúng | Đáp án sai</code><br>
+Muốn chỉ rõ đáp án đúng là A hay B thì thêm cột thứ 4: <code>Câu hỏi | Đáp án A | Đáp án B | B</code><br>
+<b>Kiểu 2 – theo khối</b>, mỗi câu cách nhau một dòng trống:<br>
+<code>Câu 1: Nội dung câu hỏi</code><br><code>A. Đáp án A</code><br><code>B. Đáp án B</code><br><code>Đáp án: A</code> (hoặc gõ dấu * sau đáp án đúng)</p>
+<textarea id="it" rows="7" style="width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid #fff4;background:#1a2140;color:#fff" placeholder="Dán câu hỏi vào đây..."></textarea>
+<div style="margin-top:6px"><input type="file" id="if" accept=".txt,.csv,.tsv,.md,text/plain"></div>
+<div style="margin-top:4px"><button id="ia">➕ Thêm vào danh sách</button><button class="g" id="ir">♻ Thay toàn bộ</button><button class="g" id="is">📄 Tải file mẫu</button></div>
+<div id="im" style="font-size:13px;margin-top:6px;color:#ffd23f"></div></div>
 <div id="list"></div>
-<button id="add">➕ Thêm câu</button><button class="g" id="rst">↺ Khôi phục mẫu</button><button id="sv">💾 Lưu &amp; đóng</button>
+<button id="add">➕ Thêm câu</button><button class="g" id="imp">📥 Nhập hàng loạt</button><button class="g" id="rst">↺ Khôi phục mẫu</button><button id="sv">💾 Lưu &amp; đóng</button>
 <p style="opacity:.7;font-size:13px">Mỗi câu chỉ có 2 đáp án; chọn đáp án đúng ở cột bên phải. Vị trí A/B được xáo ngẫu nhiên khi chơi. Có thể gõ ký hiệu như x², √, ≤, π, °.</p>
 </div></div>
 
@@ -134,7 +146,7 @@ const DEF=[
 let Q,cfg;
 try{Q=JSON.parse(localStorage.getItem('t8q'));cfg=JSON.parse(localStorage.getItem('t8c'))}catch(e){}
 if(!Array.isArray(Q)||!Q.length)Q=JSON.parse(JSON.stringify(DEF));
-cfg=Object.assign({time:15,sens:6,names:['Đội Xanh','Đội Đỏ']},cfg||{});
+cfg=Object.assign({title:'TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ',time:15,sens:6,names:['Đội Xanh','Đội Đỏ']},cfg||{});
 const save=()=>{try{localStorage.setItem('t8q',JSON.stringify(Q));localStorage.setItem('t8c',JSON.stringify(cfg))}catch(e){}};
 
 /* ===== Âm thanh ===== */
@@ -201,7 +213,7 @@ let idx=0,scores=[0,0],phase='idle',q,order,locks,lt,charge=[0,0,0,0],t0=0,lastT
 const cardsEl=$('#cards');
 for(let k=0;k<4;k++){const d=document.createElement('div');d.className='card t'+(k>>1);d.style.left=(k*25+1)+'cqw';d.innerHTML='<div class="f"></div><i>'+'AB'[k%2]+'</i><span></span>';d.onclick=()=>{au();choose(k>>1,k%2)};cardsEl.appendChild(d)}
 const cards=[...cardsEl.children];
-function names(){$('#n1').textContent=cfg.names[0];$('#n2').textContent=cfg.names[1]}
+function names(){$('#n1').textContent=cfg.names[0];$('#n2').textContent=cfg.names[1];$('#gt').textContent=cfg.title;document.title=cfg.title}
 function scoreUI(){$('#s1').textContent=scores[0];$('#s2').textContent=scores[1]}
 function nextQ(){
  q=Q[idx];order=Math.random()<.5?[0,1]:[1,0];locks=[null,null];lt=[0,0];charge=[0,0,0,0];prev=null;
@@ -279,15 +291,52 @@ requestAnimationFrame(frame);
 
 /* ===== Soạn câu hỏi ===== */
 function renderEd(){
- $('#e1').value=cfg.names[0];$('#e2').value=cfg.names[1];$('#et').value=cfg.time;$('#es2').value=cfg.sens;
+ $('#etl').value=cfg.title;$('#e1').value=cfg.names[0];$('#e2').value=cfg.names[1];$('#et').value=cfg.time;$('#es2').value=cfg.sens;
  $('#list').innerHTML=Q.map((x,i)=>`<div class="row"><b>${i+1}</b><input class="q" value="${esc(x.q)}" placeholder="Câu hỏi"><input class="a0" value="${esc(x.a[0])}" placeholder="Đáp án A"><input class="a1" value="${esc(x.a[1])}" placeholder="Đáp án B"><select class="c"><option value="0"${x.c==0?' selected':''}>Đúng: A</option><option value="1"${x.c==1?' selected':''}>Đúng: B</option></select><button class="g" data-del="${i}">🗑</button></div>`).join('');
 }
 function collect(){
- cfg.names=[$('#e1').value||'Đội 1',$('#e2').value||'Đội 2'];
+ cfg.title=$('#etl').value.trim()||'TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ';cfg.names=[$('#e1').value||'Đội 1',$('#e2').value||'Đội 2'];
  cfg.time=Math.max(5,Math.min(120,+$('#et').value||15));cfg.sens=Math.max(1,Math.min(10,+$('#es2').value||6));
  Q=[...document.querySelectorAll('#list .row')].map(r=>({q:r.querySelector('.q').value.trim(),a:[r.querySelector('.a0').value.trim(),r.querySelector('.a1').value.trim()],c:+r.querySelector('.c').value})).filter(x=>x.q&&x.a[0]&&x.a[1]);
 }
 $('#bed').onclick=()=>{renderEd();$('#ed').hidden=false};
+function parseQs(txt){
+ const out=[];let cur=null;
+ const push=()=>{if(cur&&cur.q&&cur.a[0]&&cur.a[1])out.push({q:cur.q,a:[cur.a[0],cur.a[1]],c:cur.c});cur=null};
+ const strip=s=>s.replace(/^(?:câu|bài|question)\s*\d*\s*[:.)\-]\s*/i,'').replace(/^\d+\s*[.)]\s*/,'').trim();
+ for(const raw of String(txt).replace(/^\uFEFF/,'').replace(/\r/g,'').split('\n')){
+  const l=raw.trim();
+  if(!l){push();continue}
+  if(/[|\t]/.test(l)||l.split(';').length>=3){
+   push();const f=l.split(/\s*[|\t;]\s*/).map(x=>x.replace(/^"+|"+$/g,'').trim());
+   if(f.length>=3&&f[0]&&f[1]&&f[2]&&!/^(câu hỏi|question)$/i.test(f[0]))out.push({q:strip(f[0])||f[0],a:[f[1],f[2]],c:/^(b|2)$/i.test(f[3]||'')?1:0});
+   continue}
+  let m=l.match(/^(?:đáp án|dap an|đ\/a|answer|ans)(?:\s*đúng)?\s*[:：.\-]?\s*([ABab12])(?![\p{L}\d])/iu);
+  if(m){if(cur)cur.c=/[Bb2]/.test(m[1])?1:0;continue}
+  if(cur&&/^\*?\s*[CDcd]\s*[.):：]\s*\S/.test(l))continue;
+  m=l.match(/^(\*?)\s*([ABab])\s*[.):：]\s*(.+)$/);
+  if(m&&cur){const i=/[Bb]/.test(m[2])?1:0;let t=m[3].trim();if(m[1]||/\*$/.test(t)){cur.c=i;t=t.replace(/\s*\*$/,'')}cur.a[i]=t;continue}
+  if(cur&&cur.a[0]==null&&cur.a[1]==null)cur.q+=' '+l;
+  else{push();cur={q:strip(l)||l,a:[null,null],c:0}}
+ }
+ push();return out;
+}
+const imsg=t=>{$('#im').textContent=t};
+$('#imp').onclick=()=>{$('#ip').hidden=!$('#ip').hidden};
+$('#if').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#it').value=r.result;imsg('Đã đọc file "'+f.name+'" – bấm "Thêm vào danh sách" hoặc "Thay toàn bộ".')};r.readAsText(f,'UTF-8')};
+function doImp(rep){
+ const n=parseQs($('#it').value);
+ if(!n.length){imsg('⚠️ Không nhận ra câu hỏi nào. Hãy kiểm tra lại định dạng theo hướng dẫn.');return}
+ if(rep&&!confirm('Thay toàn bộ các câu hiện có bằng '+n.length+' câu mới?'))return;
+ collect();Q=rep?n:Q.concat(n);renderEd();$('#ip').hidden=false;$('#it').value='';
+ imsg('✅ Đã '+(rep?'thay bằng ':'thêm ')+n.length+' câu. Nhớ bấm "Lưu & đóng" để dùng khi chơi.');
+}
+$('#ia').onclick=()=>doImp(0);$('#ir').onclick=()=>doImp(1);
+$('#is').onclick=()=>{
+ const t='Câu hỏi | Đáp án đúng | Đáp án sai\nNghiệm của phương trình 3x − 9 = 0 là: | x = 3 | x = −3\nHình vuông có bao nhiêu trục đối xứng? | 4 | 2\n\nCâu 3: Rút gọn (x² − 4)/(x − 2) với x ≠ 2:\nA. x − 2\nB. x + 2\nĐáp án: B\n';
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+t],{type:'text/plain;charset=utf-8'}));a.download='mau-cau-hoi.txt';a.click();
+};
+
 $('#add').onclick=()=>{collect();Q.push({q:'',a:['',''],c:0});renderEd()};
 $('#rst').onclick=()=>{if(confirm('Khôi phục bộ câu hỏi mẫu?')){Q=JSON.parse(JSON.stringify(DEF));renderEd()}};
 $('#list').onclick=e=>{const d=e.target.dataset&&e.target.dataset.del;if(d!=null&&d!==''){collect();Q.splice(+d,1);renderEd()}};
