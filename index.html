@@ -31,11 +31,12 @@ body{display:flex;align-items:center;justify-content:center}
 .card.lk{background:#ffd23f55;transform:scale(1.04);box-shadow:0 0 3cqw #ffd23f}
 .card.ok{background:#17c964cc;box-shadow:0 0 3cqw #17c964;transform:scale(1.06)}
 .card.bad{background:#f31260aa}
-#hint{position:absolute;bottom:.7cqw;left:0;right:0;padding:0 2cqw 0 22cqw;text-align:center;font-size:1.25cqw;opacity:.8}
+#hint{position:absolute;bottom:.7cqw;left:0;right:0;padding:0 2cqw 0 43cqw;text-align:center;font-size:1.25cqw;opacity:.8}
 .cb{position:absolute;bottom:.5cqw;left:1cqw;z-index:10;display:flex;gap:.6cqw}
 .cb button{font:inherit;font-size:1.35cqw;font-weight:800;padding:.55cqw 1.1cqw;border:0;border-radius:3cqw;background:#fff;color:#111;cursor:pointer}
 .cb button.off{background:#ffd23f;animation:pl .8s infinite alternate}
 @keyframes pl{to{transform:scale(1.1)}}
+.cb span{font-size:1.3cqw;font-weight:800;background:#000b;padding:.55cqw 1cqw;border-radius:3cqw;white-space:nowrap}
 #rot{display:none!important;color:#ffd23f;font-weight:800}
 @media(orientation:portrait){#rot{display:block!important}}
 #toast{position:absolute;left:50%;bottom:4cqw;transform:translateX(-50%);z-index:25;max-width:80cqw;background:#ffd23f;color:#111;font-weight:700;font-size:1.8cqw;padding:1cqw 2cqw;border-radius:1.5cqw;text-align:center;line-height:1.35}
@@ -75,9 +76,9 @@ body{display:flex;align-items:center;justify-content:center}
 <div id="qb"></div>
 <div id="bar"><div id="bf"></div></div>
 <div id="cards"></div>
-<div id="hint">Vẫy tay vào ô đáp án (hoặc nghiêng/đưa đầu về phía ô đó) để chọn · Phím: A/S = Đội 1 · K/L = Đội 2 · hoặc chạm vào ô</div>
+<div id="hint">Vẫy tay hoặc đưa đầu vào ô đáp án để chọn · Phím A/S = Đội 1, K/L = Đội 2 · hoặc chạm ô</div>
 
-<div class="cb"><button id="cb" class="off">📷 Bật camera</button><button id="cf" title="Đổi camera trước/sau">🔄</button><button id="fs" title="Toàn màn hình">⛶</button></div>
+<div class="cb"><button id="cb" class="off">📷 Bật camera</button><button id="cf" title="Đổi camera trước/sau">🔄</button><button id="fs" title="Toàn màn hình">⛶</button><button id="sm" title="Giảm độ nhạy">🎚 −</button><span id="sl"></span><button id="sp" title="Tăng độ nhạy">🎚 +</button><button id="tx" hidden>⬅ Thoát thử</button></div>
 
 <div id="toast" hidden></div>
 <div class="ov" id="start">
@@ -90,6 +91,7 @@ body{display:flex;align-items:center;justify-content:center}
 <button class="btn s" id="bflip">🔄 Đổi camera trước/sau</button>
 <button class="btn s" id="bed">✏️ Soạn câu hỏi</button>
 <button class="btn s" id="bfs">⛶ Toàn màn hình</button>
+<button class="btn s" id="btest">🎯 Thử cử chỉ</button>
 </div>
 <button class="btn" id="go">▶ BẮT ĐẦU CHƠI</button>
 </div>
@@ -146,7 +148,8 @@ const DEF=[
 let Q,cfg;
 try{Q=JSON.parse(localStorage.getItem('t8q'));cfg=JSON.parse(localStorage.getItem('t8c'))}catch(e){}
 if(!Array.isArray(Q)||!Q.length)Q=JSON.parse(JSON.stringify(DEF));
-cfg=Object.assign({title:'TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ',time:15,sens:6,names:['Đội Xanh','Đội Đỏ']},cfg||{});
+cfg=Object.assign({title:'TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ',time:15,sens:8,names:['Đội Xanh','Đội Đỏ']},cfg||{});
+if(!cfg.v){cfg.sens=Math.max(8,cfg.sens||8);cfg.v=2}
 const save=()=>{try{localStorage.setItem('t8q',JSON.stringify(Q));localStorage.setItem('t8c',JSON.stringify(cfg))}catch(e){}};
 
 /* ===== Âm thanh ===== */
@@ -172,17 +175,9 @@ function burst(x,y,n=90){for(let i=0;i<n;i++){const a=Math.random()*6.28,s=4+Mat
 function drawFx(){fc.clearRect(0,0,fx.width,fx.height);P=P.filter(p=>p.l>0);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.3;p.vx*=.99;p.l--;fc.fillStyle=p.c;fc.fillRect(p.x,p.y,p.r,p.r*.6)})}
 
 /* ===== Camera & nhận diện chuyển động ===== */
-const v=$('#v'),mc=document.createElement('canvas');mc.width=64;mc.height=36;
+const v=$('#v'),mc=document.createElement('canvas');mc.width=96;mc.height=54;
 const mx=mc.getContext('2d',{willReadFrequently:true});
 let camOn=false,facing='user',prev=null,mir=true;
-async function camOld(){
- try{
-  if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop());
-  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280},height:{ideal:720}},audio:false});
-  v.srcObject=s;await v.play();camOn=true;prev=null;mir=facing=='user';v.classList.toggle('m',mir);
-  $('#cs').textContent='📷 Camera đã bật – hãy thử vẫy tay vào ô đáp án!';setCb();
- }catch(e){camOn=false;setCb();$('#cs').textContent='⚠️ Không bật được camera (hãy cho phép quyền camera). Vẫn có thể chơi bằng phím hoặc chạm.'}
-}
 let mf=[0,0,0,0];
 const toast=(m,ms=9000)=>{const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,ms)};
 async function cam(){
@@ -190,33 +185,66 @@ async function cam(){
  if(!md||!md.getUserMedia){const m='⚠️ Khung nhúng/trình duyệt này không cho dùng camera. Hãy tải file về và mở bằng Chrome/Safari, hoặc đưa lên Netlify/GitHub Pages (https).';$('#cs').textContent=m;toast(m);return false}
  if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop());
  let s=null,err=null;
- for(const c of [{video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},audio:false},{video:true,audio:false}]){
+ for(const c of [{video:{facingMode:{ideal:facing},width:{ideal:640},height:{ideal:360},frameRate:{ideal:30}},audio:false},{video:true,audio:false}]){
   try{s=await md.getUserMedia(c);break}catch(e){err=e;if(e.name=='NotAllowedError'||e.name=='SecurityError')break}
  }
  if(!s){camOn=false;setCb();const n=err&&err.name,m=(n=='NotAllowedError'||n=='SecurityError')?'⚠️ Camera bị chặn (bạn chưa cho phép, hoặc khung nhúng của claude.ai không cấp quyền camera). Hãy tải file về mở bằng Chrome/Safari, hoặc đưa lên Netlify/GitHub Pages để dùng camera.':n=='NotFoundError'?'⚠️ Không tìm thấy camera trên thiết bị này.':n=='NotReadableError'?'⚠️ Camera đang được ứng dụng khác sử dụng – hãy đóng ứng dụng đó rồi thử lại.':'⚠️ Không bật được camera ('+(n||'lỗi')+').';$('#cs').textContent=m;toast(m);return false}
  v.srcObject=s;v.muted=true;try{await v.play()}catch(e){}
- camOn=true;prev=null;mir=facing=='user';v.classList.toggle('m',mir);setCb();
+ camOn=true;prev=null;p1=p2=null;mir=facing=='user';v.classList.toggle('m',mir);setCb();
  const m='📷 Camera đã bật – vẫy tay vào ô đáp án để chọn!';$('#cs').textContent=m;toast(m,3500);return true;
 }
+const GW=96,GH=54,ZW=24,ZPX=ZW*GH;
+let p1=null,p2=null,sm=[0,0,0,0],bs=[0,0,0,0],thr=[.03,.03,.03,.03],mt=0;
 function motion(){
  if(!camOn||v.readyState<2)return null;
  const w=v.videoWidth,h=v.videoHeight;let sw=w,sh=w*9/16;if(sh>h){sh=h;sw=h*16/9}
- mx.save();if(mir){mx.translate(64,0);mx.scale(-1,1)}
- mx.drawImage(v,(w-sw)/2,(h-sh)/2,sw,sh,0,0,64,36);mx.restore();
- const d=mx.getImageData(0,0,64,36).data,g=new Uint8Array(2304),c=[0,0,0,0];
- for(let i=0;i<2304;i++){g[i]=(d[i*4]+d[i*4+1]+d[i*4+2])/3;if(prev&&Math.abs(g[i]-prev[i])>24)c[(i%64)>>4]++}
- const r=prev?c.map(n=>n/576):null;prev=g;return r;
+ mx.save();if(mir){mx.translate(GW,0);mx.scale(-1,1)}
+ mx.drawImage(v,(w-sw)/2,(h-sh)/2,sw,sh,0,0,GW,GH);mx.restore();
+ const d=mx.getImageData(0,0,GW,GH).data,N=GW*GH,g=new Uint8Array(N);
+ for(let i=0;i<N;i++)g[i]=(d[i*4]*3+d[i*4+1]*6+d[i*4+2])/10;
+ let r=null;
+ if(p1){
+  let pos=0,neg=0;
+  for(let i=0;i<N;i++){const x=g[i]-p1[i];if(x>3)pos++;else if(x<-3)neg++}
+  if(pos<.8*N&&neg<.8*N){ /* bỏ qua khi camera tự đổi sáng toàn khung */
+   const T=12+(10-cfg.sens)*2,c=[0,0,0,0];
+   for(let i=0;i<N;i++){let dd=Math.abs(g[i]-p1[i]);if(p2){const e=Math.abs(g[i]-p2[i]);if(e>dd)dd=e}if(dd>T)c[((i%GW)/ZW)|0]++}
+   r=c.map(n=>n/ZPX);
+  }
+ }
+ p2=p1;p1=g;return r;
 }
+function fire(t,p){
+ if(phase=='q')choose(t,p);
+ else{const c=cards[t*2+p];c.classList.add('ok');SFX.pop();setTimeout(()=>c.classList.remove('ok'),700)}
+}
+function mstep(now){
+ if(now-mt<60)return;const dt=Math.min(.2,(now-mt)/1000);mt=now;
+ const f=motion();if(!f)return;
+ for(let z=0;z<4;z++)sm[z]=sm[z]*.45+f[z]*.55;
+ const base=.05-cfg.sens*.0033;
+ for(let z=0;z<4;z++){thr[z]=Math.max(.012,bs[z]*2+base);if(sm[z]<thr[z]&&charge[z]<.2)bs[z]=bs[z]*.97+sm[z]*.03}
+ for(let t=0;t<2;t++){
+  if(phase=='q'&&locks[t]!=null)continue;
+  const R=[sm[t*2]/thr[t*2],sm[t*2+1]/thr[t*2+1]];
+  for(let p=0;p<2;p++){
+   const i=t*2+p,r=R[p],o=R[1-p],dom=r>1&&r>o*1.25;
+   charge[i]=Math.max(0,Math.min(1,charge[i]+(dom?dt*(1+Math.min(r-1,2)*.95):-dt)));
+  }
+  for(let p=0;p<2;p++){if(charge[t*2+p]>=1){charge[t*2]=charge[t*2+1]=0;fire(t,p);break}}
+ }
+}
+function glow(){cards.forEach((c,k)=>{if(phase=='test'||locks[k>>1]==null)c.querySelector('.f').style.height=charge[k]*100+'%';c.style.setProperty('--g',(camOn?Math.min(3,sm[k]/thr[k]*1.2):0)+'cqw')})}
 
 /* ===== Trò chơi ===== */
 let idx=0,scores=[0,0],phase='idle',q,order,locks,lt,charge=[0,0,0,0],t0=0,lastTick=-1,lastM=0;
 const cardsEl=$('#cards');
 for(let k=0;k<4;k++){const d=document.createElement('div');d.className='card t'+(k>>1);d.style.left=(k*25+1)+'cqw';d.innerHTML='<div class="f"></div><i>'+'AB'[k%2]+'</i><span></span>';d.onclick=()=>{au();choose(k>>1,k%2)};cardsEl.appendChild(d)}
 const cards=[...cardsEl.children];
-function names(){$('#n1').textContent=cfg.names[0];$('#n2').textContent=cfg.names[1];$('#gt').textContent=cfg.title;document.title=cfg.title}
+function names(){$('#n1').textContent=cfg.names[0];$('#n2').textContent=cfg.names[1];$('#gt').textContent=cfg.title;document.title=cfg.title;slUp()}
 function scoreUI(){$('#s1').textContent=scores[0];$('#s2').textContent=scores[1]}
 function nextQ(){
- q=Q[idx];order=Math.random()<.5?[0,1]:[1,0];locks=[null,null];lt=[0,0];charge=[0,0,0,0];prev=null;
+ q=Q[idx];order=Math.random()<.5?[0,1]:[1,0];locks=[null,null];lt=[0,0];charge=[0,0,0,0];prev=null;p1=p2=null;
  $('#qb').textContent=q.q;$('#qn').textContent='Câu '+(idx+1)+'/'+Q.length;
  cards.forEach((c,k)=>{c.className='card t'+(k>>1);c.querySelector('span').textContent=q.a[order[k%2]];c.querySelector('.f').style.height='0'});
  names();scoreUI();$('#res').hidden=true;phase='q';t0=performance.now();lastTick=-1;
@@ -261,7 +289,21 @@ function setCb(){const b=$('#cb'),t=camOn?'📷 Tắt camera':'📷 Bật camera
 function stopCam(){if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;camOn=false;prev=null;$('#cs').textContent='Camera đã tắt – vẫn có thể chơi bằng phím hoặc chạm.';setCb()}
 const tg=()=>{au();document.activeElement&&document.activeElement.blur();camOn?stopCam():cam()};
 $('#bcam').onclick=tg;$('#cb').onclick=tg;
-$('#fs').onclick=()=>{document.activeElement&&document.activeElement.blur();fs()};$('#bfs').onclick=()=>{au();fs()};
+$('#fs').onclick=()=>{document.activeElement&&document.activeElement.blur();fs()};
+function slUp(){$('#sl').textContent='Nhạy '+cfg.sens}
+$('#sm').onclick=()=>{document.activeElement&&document.activeElement.blur();cfg.sens=Math.max(1,cfg.sens-1);slUp();save()};
+$('#sp').onclick=()=>{document.activeElement&&document.activeElement.blur();cfg.sens=Math.min(10,cfg.sens+1);slUp();save()};
+slUp();
+$('#btest').onclick=async()=>{
+ au();goFs();if(!camOn)await cam();
+ $('#start').hidden=true;phase='test';charge=[0,0,0,0];p1=p2=null;locks=[null,null];
+ $('#qb').textContent='🎯 Thử cử chỉ: vẫy tay hoặc đưa đầu vào từng ô – ô sáng xanh khi nhận diện được';
+ $('#qn').textContent='Chế độ thử';$('#tm').textContent='';$('#bf').style.width='0';
+ cards.forEach((c,k)=>{c.className='card t'+(k>>1);c.querySelector('span').textContent='Đáp án '+'AB'[k%2]});
+ $('#tx').hidden=false;$('#hint').hidden=true;
+};
+$('#tx').onclick=()=>{phase='idle';$('#tx').hidden=true;$('#hint').hidden=false;$('#start').hidden=false;cards.forEach(c=>c.classList.remove('ok'))};
+$('#bfs').onclick=()=>{au();fs()};
 $('#cf').onclick=()=>{au();document.activeElement&&document.activeElement.blur();facing=facing=='user'?'environment':'user';cam()};$('#bflip').onclick=()=>{facing=facing=='user'?'environment':'user';cam()};
 addEventListener('keydown',e=>{
  if($('#ed').hidden===false)return;const k=e.key.toLowerCase();
@@ -272,20 +314,14 @@ addEventListener('keydown',e=>{
 function frame(now){
  requestAnimationFrame(frame);
  if(P.length||fc)drawFx();
+ if(phase=='test'){if(camOn)mstep(now);glow();return}
  if(phase!='q')return;
  const tl=Math.max(0,cfg.time-(now-t0)/1000);
  $('#tm').textContent=Math.ceil(tl);$('#bf').style.width=(tl/cfg.time*100)+'%';
  const ci=Math.ceil(tl);if(ci<=5&&ci!=lastTick&&ci>0){lastTick=ci;SFX.tick()}
  if(tl<=0){reveal();return}
- if(camOn&&now-lastM>80){
-  const dt=(now-lastM)/1000;lastM=now;const f=motion();if(f)mf=f;
-  if(f){const thr=.075-cfg.sens*.0055;
-   for(let t=0;t<2;t++){if(locks[t]!=null)continue;
-    for(let p=0;p<2;p++){const i=t*2+p,me=f[i],ot=f[t*2+1-p],dom=me>thr&&me>ot*1.4;
-     charge[i]=Math.max(0,Math.min(1,charge[i]+(dom?dt/.7:-dt/.5)));
-     if(charge[i]>=1){choose(t,p);break}}}}
- }
- cards.forEach((c,k)=>{if(locks[k>>1]==null)c.querySelector('.f').style.height=charge[k]*100+'%';c.style.setProperty('--g',(camOn?Math.min(3,mf[k]/(.075-cfg.sens*.0055)*1.5):0)+'cqw')});
+ if(camOn)mstep(now);
+ glow();
 }
 requestAnimationFrame(frame);
 
@@ -296,7 +332,7 @@ function renderEd(){
 }
 function collect(){
  cfg.title=$('#etl').value.trim()||'TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ';cfg.names=[$('#e1').value||'Đội 1',$('#e2').value||'Đội 2'];
- cfg.time=Math.max(5,Math.min(120,+$('#et').value||15));cfg.sens=Math.max(1,Math.min(10,+$('#es2').value||6));
+ cfg.time=Math.max(5,Math.min(120,+$('#et').value||15));cfg.sens=Math.max(1,Math.min(10,+$('#es2').value||8));
  Q=[...document.querySelectorAll('#list .row')].map(r=>({q:r.querySelector('.q').value.trim(),a:[r.querySelector('.a0').value.trim(),r.querySelector('.a1').value.trim()],c:+r.querySelector('.c').value})).filter(x=>x.q&&x.a[0]&&x.a[1]);
 }
 $('#bed').onclick=()=>{renderEd();$('#ed').hidden=false};
