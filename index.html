@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="vi"><head><meta charset="utf-8"><title>Toán 8 – Đại chiến cử chỉ</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
 <style>
 :root{--c1:#2e8bff;--c2:#ff4d6d;color-scheme:dark}
 *{box-sizing:border-box}[hidden]{display:none!important}
-html,body{margin:0;height:100%;background:#05070f;color:#fff;font-family:system-ui,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+html,body{margin:0;height:100%;height:100dvh;background:#05070f;color:#fff;font-family:system-ui,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 body{display:flex;align-items:center;justify-content:center}
 #stage{position:relative;width:min(100vw,177.78vh);aspect-ratio:16/9;container-type:inline-size;background:#0b1020;overflow:hidden;user-select:none}
 #v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}
@@ -35,6 +36,8 @@ body{display:flex;align-items:center;justify-content:center}
 .cb button{font:inherit;font-size:1.35cqw;font-weight:800;padding:.55cqw 1.1cqw;border:0;border-radius:3cqw;background:#fff;color:#111;cursor:pointer}
 .cb button.off{background:#ffd23f;animation:pl .8s infinite alternate}
 @keyframes pl{to{transform:scale(1.1)}}
+#rot{display:none!important;color:#ffd23f;font-weight:800}
+@media(orientation:portrait){#rot{display:block!important}}
 #toast{position:absolute;left:50%;bottom:4cqw;transform:translateX(-50%);z-index:25;max-width:80cqw;background:#ffd23f;color:#111;font-weight:700;font-size:1.8cqw;padding:1cqw 2cqw;border-radius:1.5cqw;text-align:center;line-height:1.35}
 .ov{position:absolute;inset:0;z-index:20;background:#050814e6;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1.4cqw}
 .ov h1{margin:0;font-size:5cqw;background:linear-gradient(90deg,#4fd1ff,#ffd23f,#ff4d6d);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -43,7 +46,7 @@ body{display:flex;align-items:center;justify-content:center}
 .btn.s{background:#fff;box-shadow:0 .4cqw 0 #aaa;font-size:1.6cqw;padding:.8cqw 2cqw}
 .btn:active{transform:translateY(.3cqw)}
 .row2{display:flex;gap:1.5cqw;flex-wrap:wrap;justify-content:center}
-#res{flex-direction:row;gap:0;justify-content:stretch;background:#050814d9}
+#res{flex-direction:row;gap:0;justify-content:stretch;background:#050814f5}
 .rh{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5cqw;padding-top:6cqw}
 #r1{background:#2e8bff22}#r2{background:#ff4d6d22}
 .rh h3{margin:0;font-size:2.6cqw}.rh .e{font-size:7cqw;line-height:1}.rh .p{font-size:6cqw;font-weight:900;color:#ffd23f}.rh .to{font-size:2.4cqw}
@@ -74,17 +77,19 @@ body{display:flex;align-items:center;justify-content:center}
 <div id="cards"></div>
 <div id="hint">Vẫy tay vào ô đáp án (hoặc nghiêng/đưa đầu về phía ô đó) để chọn · Phím: A/S = Đội 1 · K/L = Đội 2 · hoặc chạm vào ô</div>
 
-<div class="cb"><button id="cb" class="off">📷 Bật camera</button><button id="cf" title="Đổi camera trước/sau">🔄</button></div>
+<div class="cb"><button id="cb" class="off">📷 Bật camera</button><button id="cf" title="Đổi camera trước/sau">🔄</button><button id="fs" title="Toàn màn hình">⛶</button></div>
 
 <div id="toast" hidden></div>
 <div class="ov" id="start">
 <h1>TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ</h1>
 <p>2 đội cùng trả lời một câu hỏi trên màn hình chia đôi. Mỗi câu có 2 đáp án – vẫy tay hoặc đưa đầu về phía đáp án đúng trước camera để chọn. Đúng và nhanh sẽ được nhiều điểm hơn!</p>
+<p id="rot">↻ Hãy xoay ngang điện thoại để chơi toàn màn hình.</p>
 <p id="cs">Camera chưa bật – vẫn có thể chơi bằng phím hoặc chạm.</p>
 <div class="row2">
 <button class="btn s" id="bcam">📷 Bật camera</button>
 <button class="btn s" id="bflip">🔄 Đổi camera trước/sau</button>
 <button class="btn s" id="bed">✏️ Soạn câu hỏi</button>
+<button class="btn s" id="bfs">⛶ Toàn màn hình</button>
 </div>
 <button class="btn" id="go">▶ BẮT ĐẦU CHƠI</button>
 </div>
@@ -146,7 +151,11 @@ fan:()=>{[523,659,784,1047,988,1047,1319,1568,1319,1568,2093].forEach((f,i)=>{to
 
 /* ===== Pháo giấy ===== */
 const fx=$('#fx'),fc=fx.getContext('2d');let P=[];
-const fit=()=>{fx.width=fx.clientWidth;fx.height=fx.clientHeight};addEventListener('resize',fit);fit();
+const fit=()=>{const W=Math.min(innerWidth,innerHeight*16/9);$('#stage').style.width=W+'px';fx.width=fx.clientWidth;fx.height=fx.clientHeight};
+['resize','fullscreenchange','webkitfullscreenchange'].forEach(e=>addEventListener(e,fit));document.addEventListener('fullscreenchange',fit);addEventListener('orientationchange',()=>{setTimeout(fit,300);setTimeout(fit,800)});fit();setTimeout(fit,300);
+const inFs=()=>document.fullscreenElement||document.webkitFullscreenElement;
+function fs(){const d=document,e=d.documentElement;if(inFs()){(d.exitFullscreen||d.webkitExitFullscreen).call(d)}else{const r=e.requestFullscreen||e.webkitRequestFullscreen;if(r){try{const p=r.call(e);if(p&&p.then)p.then(()=>{try{screen.orientation.lock('landscape').catch(()=>{})}catch(x){}setTimeout(fit,300)}).catch(()=>{})}catch(x){}}}}
+const goFs=()=>{if(!inFs())fs()};
 function burst(x,y,n=90){for(let i=0;i<n;i++){const a=Math.random()*6.28,s=4+Math.random()*11;P.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-7,r:4+Math.random()*7,c:`hsl(${Math.random()*360},90%,60%)`,l:80+Math.random()*60})}}
 function drawFx(){fc.clearRect(0,0,fx.width,fx.height);P=P.filter(p=>p.l>0);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.3;p.vx*=.99;p.l--;fc.fillStyle=p.c;fc.fillRect(p.x,p.y,p.r,p.r*.6)})}
 
@@ -223,7 +232,7 @@ function showRes(ok,pt,cp){
  $('#ra').innerHTML='Đáp án đúng: <b>'+esc(q.a[q.c])+'</b>';
  [0,1].forEach(t=>{$('#r'+(t+1)).innerHTML='<h3>'+esc(n[t])+'</h3><div class="e">'+(ok[t]?'✅':locks[t]==null?'⏰':'❌')+'</div><div class="p">+0</div><div class="to">Tổng: '+old[t]+'</div>'});
  $('#nx').textContent=idx==Q.length-1?'Xem kết quả 🏆':'Câu tiếp theo ▶';
- $('#res').hidden=false;phase='ro';
+ $('#res').hidden=false;phase='ro';$('#toast').hidden=true;
  [0,1].forEach(t=>{const r=$('#r'+(t+1));tw(r.querySelector('.p'),0,pt[t],x=>'+'+x);tw(r.querySelector('.to'),old[t],scores[t],x=>'Tổng: '+x);if(ok[t])burst(fx.width*(.25+.5*t),fx.height*.55,120)});
  any?SFX.win():SFX.lose();scoreUI();
 }
@@ -234,12 +243,13 @@ function finish(){
  $('#es').textContent=n[0]+': '+a+' điểm  —  '+n[1]+': '+b+' điểm';$('#end').hidden=false;
  SFX.fan();[0,300,600,900,1300].forEach(t=>setTimeout(()=>burst(fx.width*Math.random(),fx.height*.4,100),t));
 }
-function startGame(){au();if(!camOn)cam();idx=0;scores=[0,0];$('#start').hidden=true;$('#end').hidden=true;nextQ()}
+function startGame(){au();goFs();if(!camOn)cam();idx=0;scores=[0,0];$('#start').hidden=true;$('#end').hidden=true;nextQ()}
 $('#go').onclick=startGame;$('#again').onclick=startGame;$('#nx').onclick=next;
 function setCb(){const b=$('#cb'),t=camOn?'📷 Tắt camera':'📷 Bật camera';b.textContent=t;b.className=camOn?'':'off';$('#bcam').textContent=t}
 function stopCam(){if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;camOn=false;prev=null;$('#cs').textContent='Camera đã tắt – vẫn có thể chơi bằng phím hoặc chạm.';setCb()}
 const tg=()=>{au();document.activeElement&&document.activeElement.blur();camOn?stopCam():cam()};
 $('#bcam').onclick=tg;$('#cb').onclick=tg;
+$('#fs').onclick=()=>{document.activeElement&&document.activeElement.blur();fs()};$('#bfs').onclick=()=>{au();fs()};
 $('#cf').onclick=()=>{au();document.activeElement&&document.activeElement.blur();facing=facing=='user'?'environment':'user';cam()};$('#bflip').onclick=()=>{facing=facing=='user'?'environment':'user';cam()};
 addEventListener('keydown',e=>{
  if($('#ed').hidden===false)return;const k=e.key.toLowerCase();
