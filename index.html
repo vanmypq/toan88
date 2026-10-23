@@ -76,14 +76,14 @@ body{display:flex;align-items:center;justify-content:center}
 <div id="qb"></div>
 <div id="bar"><div id="bf"></div></div>
 <div id="cards"></div>
-<div id="hint">Vẫy tay hoặc đưa đầu vào ô đáp án để chọn · Phím A/S = Đội 1, K/L = Đội 2 · hoặc chạm ô</div>
+<div id="hint">Vẫy tay vào ô đáp án đúng để chọn · Phím A/S = Đội 1, K/L = Đội 2 · hoặc chạm ô</div>
 
-<div class="cb"><button id="cb" class="off">📷 Bật camera</button><button id="cf" title="Đổi camera trước/sau">🔄</button><button id="fs" title="Toàn màn hình">⛶</button><button id="sm" title="Giảm độ nhạy">🎚 −</button><span id="sl"></span><button id="sp" title="Tăng độ nhạy">🎚 +</button><button id="tx" hidden>⬅ Thoát thử</button></div>
+<div class="cb"><button id="cb" class="off">📷 Bật camera</button><button id="cf" title="Đổi camera trước/sau">🔄</button><button id="fs" title="Toàn màn hình">⛶</button><button id="sm" title="Giảm độ nhạy">🎚 −</button><span id="sl"></span><button id="sp" title="Tăng độ nhạy">🎚 +</button><button id="cal" hidden>🪄 Hiệu chỉnh 4 ô</button><button id="tx" hidden>⬅ Thoát thử</button></div>
 
 <div id="toast" hidden></div>
 <div class="ov" id="start">
 <h1 id="gt">TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ</h1>
-<p>2 đội cùng trả lời một câu hỏi trên màn hình chia đôi. Mỗi câu có 2 đáp án – vẫy tay hoặc đưa đầu về phía đáp án đúng trước camera để chọn. Đúng và nhanh sẽ được nhiều điểm hơn!</p>
+<p>2 đội cùng trả lời một câu hỏi trên màn hình chia đôi. Mỗi câu có 2 đáp án – vẫy tay (vẫy qua lại vài nhịp) vào đáp án đúng trước camera để chọn. Đúng và nhanh sẽ được nhiều điểm hơn!</p>
 <p id="rot">↻ Hãy xoay ngang điện thoại để chơi toàn màn hình.</p>
 <p id="cs">Camera chưa bật – vẫn có thể chơi bằng phím hoặc chạm.</p>
 <div class="row2">
@@ -150,6 +150,7 @@ try{Q=JSON.parse(localStorage.getItem('t8q'));cfg=JSON.parse(localStorage.getIte
 if(!Array.isArray(Q)||!Q.length)Q=JSON.parse(JSON.stringify(DEF));
 cfg=Object.assign({title:'TOÁN 8 · ĐẠI CHIẾN CỬ CHỈ',time:15,sens:8,names:['Đội Xanh','Đội Đỏ']},cfg||{});
 if(!cfg.v){cfg.sens=Math.max(8,cfg.sens||8);cfg.v=2}
+if(cfg.v<3){cfg.gain=[1.35,1,1,1.35];cfg.v=3}
 const save=()=>{try{localStorage.setItem('t8q',JSON.stringify(Q));localStorage.setItem('t8c',JSON.stringify(cfg))}catch(e){}};
 
 /* ===== Âm thanh ===== */
@@ -191,10 +192,11 @@ async function cam(){
  if(!s){camOn=false;setCb();const n=err&&err.name,m=(n=='NotAllowedError'||n=='SecurityError')?'⚠️ Camera bị chặn (bạn chưa cho phép, hoặc khung nhúng của claude.ai không cấp quyền camera). Hãy tải file về mở bằng Chrome/Safari, hoặc đưa lên Netlify/GitHub Pages để dùng camera.':n=='NotFoundError'?'⚠️ Không tìm thấy camera trên thiết bị này.':n=='NotReadableError'?'⚠️ Camera đang được ứng dụng khác sử dụng – hãy đóng ứng dụng đó rồi thử lại.':'⚠️ Không bật được camera ('+(n||'lỗi')+').';$('#cs').textContent=m;toast(m);return false}
  v.srcObject=s;v.muted=true;try{await v.play()}catch(e){}
  camOn=true;prev=null;p1=p2=null;mir=facing=='user';v.classList.toggle('m',mir);setCb();
- const m='📷 Camera đã bật – vẫy tay vào ô đáp án để chọn!';$('#cs').textContent=m;toast(m,3500);return true;
+ const m='📷 Camera đã bật – vẫy tay qua lại vào ô đáp án để chọn!';$('#cs').textContent=m;toast(m,3500);return true;
 }
 const GW=96,GH=54,ZW=24,ZPX=ZW*GH;
-let p1=null,p2=null,sm=[0,0,0,0],bs=[0,0,0,0],thr=[.03,.03,.03,.03],mt=0;
+let p1=null,p2=null,sm=[0,0,0,0],bs=[0,0,0,0],thr=[.03,.03,.03,.03],mt=0,rr=[0,0,0,0],rp=[0,0,0,0],fp=[0,0,0,0],hi=[0,0,0,0],mxv=[0,0,0,0],mnv=[0,0,0,0],ev=[[],[],[],[]],calZ=-1,calMax=0,calBusy=false;
+const gainz=()=>cfg.gain||[1.35,1,1,1.35];
 function motion(){
  if(!camOn||v.readyState<2)return null;
  const w=v.videoWidth,h=v.videoHeight;let sw=w,sh=w*9/16;if(sh>h){sh=h;sw=h*16/9}
@@ -206,13 +208,13 @@ function motion(){
  if(p1){
   let pos=0,neg=0;
   for(let i=0;i<N;i++){const x=g[i]-p1[i];if(x>3)pos++;else if(x<-3)neg++}
-  if(pos<.8*N&&neg<.8*N){ /* bỏ qua khi camera tự đổi sáng toàn khung */
-   const T=12+(10-cfg.sens)*2,c=[0,0,0,0];
-   for(let i=0;i<N;i++){let dd=Math.abs(g[i]-p1[i]);if(p2){const e=Math.abs(g[i]-p2[i]);if(e>dd)dd=e}if(dd>T)c[((i%GW)/ZW)|0]++}
+  if(pos<.8*N&&neg<.8*N){
+   const T=12+(10-cfg.sens)*2,Te=Math.max(8,Math.round(T*.7)),c=[0,0,0,0];
+   for(let i=0;i<N;i++){const x=i%GW;if(Math.abs(g[i]-p1[i])>((x<8||x>=GW-8)?Te:T))c[(x/ZW)|0]++}
    r=c.map(n=>n/ZPX);
   }
  }
- p2=p1;p1=g;return r;
+ p1=g;return r;
 }
 function fire(t,p){
  if(phase=='q')choose(t,p);
@@ -221,20 +223,48 @@ function fire(t,p){
 function mstep(now){
  if(now-mt<60)return;const dt=Math.min(.2,(now-mt)/1000);mt=now;
  const f=motion();if(!f)return;
- for(let z=0;z<4;z++)sm[z]=sm[z]*.45+f[z]*.55;
- const base=.05-cfg.sens*.0033;
- for(let z=0;z<4;z++){thr[z]=Math.max(.012,bs[z]*2+base);if(sm[z]<thr[z]&&charge[z]<.2)bs[z]=bs[z]*.97+sm[z]*.03}
+ const G=gainz(),base=.05-cfg.sens*.0033;
+ for(let z=0;z<4;z++){
+  const e=f[z]*G[z];
+  sm[z]=sm[z]*.45+f[z]*.55;
+  const es=(e+fp[z])/2;fp[z]=e;
+  thr[z]=Math.max(.012,bs[z]*2+base);
+  if(es<thr[z]&&charge[z]<.2)bs[z]=bs[z]*.97+e*.03;
+  rr[z]=es/thr[z];
+  rp[z]=Math.max(rr[z],rp[z]*Math.pow(.5,dt/.4));
+  if(hi[z]){if(es>mxv[z])mxv[z]=es;if(es<mxv[z]*.72){if(mxv[z]>thr[z])ev[z].push(now);hi[z]=0;mnv[z]=es}}
+  else{if(es<mnv[z])mnv[z]=es;if(es>mnv[z]*1.35+thr[z]*.15){hi[z]=1;mxv[z]=es}}
+  ev[z]=ev[z].filter(t=>now-t<1200);
+ }
+ if(calZ>=0){calMax=Math.max(calMax,sm[calZ]);return}
  for(let t=0;t<2;t++){
   if(phase=='q'&&locks[t]!=null)continue;
-  const R=[sm[t*2]/thr[t*2],sm[t*2+1]/thr[t*2+1]];
+  const W=[0,1].map(p=>{const a=ev[t*2+p],n=a.length;return n>=2&&now-a[n-1]<500&&a[n-1]-a[n-2]>=100&&a[n-1]-a[n-2]<=800});
   for(let p=0;p<2;p++){
-   const i=t*2+p,r=R[p],o=R[1-p],dom=r>1&&r>o*1.25;
-   charge[i]=Math.max(0,Math.min(1,charge[i]+(dom?dt*(1+Math.min(r-1,2)*.95):-dt)));
+   const z=t*2+p,o=t*2+1-p,lead=!W[1-p]||rp[z]>rp[o]*1.25;
+   let g=-1;
+   if(W[p]&&lead){const full=ev[z].length>=3;g=full?2.4+Math.min(rp[z]-1,2)*.8:1;if(!full&&charge[z]>=.75)g=0}
+   else if(rr[z]>1&&ev[z].length>=1&&lead&&charge[z]<.45)g=.9;
+   charge[z]=Math.max(0,Math.min(1,charge[z]+dt*g));
   }
-  for(let p=0;p<2;p++){if(charge[t*2+p]>=1){charge[t*2]=charge[t*2+1]=0;fire(t,p);break}}
+  for(let p=0;p<2;p++){if(charge[t*2+p]>=1){charge[t*2]=charge[t*2+1]=0;ev[t*2]=[];ev[t*2+1]=[];fire(t,p);break}}
  }
 }
-function glow(){cards.forEach((c,k)=>{if(phase=='test'||locks[k>>1]==null)c.querySelector('.f').style.height=charge[k]*100+'%';c.style.setProperty('--g',(camOn?Math.min(3,sm[k]/thr[k]*1.2):0)+'cqw')})}
+function glow(){cards.forEach((c,k)=>{if(phase=='test'||locks[k>>1]==null)c.querySelector('.f').style.height=charge[k]*100+'%';c.style.setProperty('--g',(camOn?Math.min(3,rp[k]*1.2):0)+'cqw')})}
+async function calib(){
+ if(calBusy||!camOn)return;calBusy=true;const pk=[0,0,0,0];
+ for(let z=0;z<4;z++){
+  cards.forEach(c=>c.classList.remove('lk'));cards[z].classList.add('lk');
+  $('#qb').textContent='🪄 Hiệu chỉnh: vẫy tay tự nhiên vào ô sáng vàng ('+cfg.names[z>>1]+' – ô '+'AB'[z%2]+') trong 3 giây';
+  calMax=0;calZ=z;await new Promise(r=>setTimeout(r,3000));pk[z]=calMax;
+ }
+ calZ=-1;cards.forEach(c=>c.classList.remove('lk'));
+ const m=[...pk].sort((a,b)=>a-b),med=(m[1]+m[2])/2,miss=[];
+ cfg.gain=pk.map((x,z)=>{if(x<.004){miss.push(cfg.names[z>>1]+' ô '+'AB'[z%2]);return 2}return +Math.max(.7,Math.min(3,med/x)).toFixed(2)});
+ save();charge=[0,0,0,0];ev=[[],[],[],[]];
+ $('#qb').textContent=miss.length?'⚠️ Gần như không thấy cử chỉ ở: '+miss.join(', ')+' – hãy đứng gần hơn / thêm ánh sáng rồi hiệu chỉnh lại.':'✅ Đã hiệu chỉnh xong – hệ số các ô: '+cfg.gain.join(' · ')+'. Hãy vẫy thử vào từng ô.';
+ calBusy=false;
+}
 
 /* ===== Trò chơi ===== */
 let idx=0,scores=[0,0],phase='idle',q,order,locks,lt,charge=[0,0,0,0],t0=0,lastTick=-1,lastM=0;
@@ -244,7 +274,7 @@ const cards=[...cardsEl.children];
 function names(){$('#n1').textContent=cfg.names[0];$('#n2').textContent=cfg.names[1];$('#gt').textContent=cfg.title;document.title=cfg.title;slUp()}
 function scoreUI(){$('#s1').textContent=scores[0];$('#s2').textContent=scores[1]}
 function nextQ(){
- q=Q[idx];order=Math.random()<.5?[0,1]:[1,0];locks=[null,null];lt=[0,0];charge=[0,0,0,0];prev=null;p1=p2=null;
+ q=Q[idx];order=Math.random()<.5?[0,1]:[1,0];locks=[null,null];lt=[0,0];charge=[0,0,0,0];prev=null;p1=p2=null;ev=[[],[],[],[]];hi=[0,0,0,0];
  $('#qb').textContent=q.q;$('#qn').textContent='Câu '+(idx+1)+'/'+Q.length;
  cards.forEach((c,k)=>{c.className='card t'+(k>>1);c.querySelector('span').textContent=q.a[order[k%2]];c.querySelector('.f').style.height='0'});
  names();scoreUI();$('#res').hidden=true;phase='q';t0=performance.now();lastTick=-1;
@@ -297,12 +327,13 @@ slUp();
 $('#btest').onclick=async()=>{
  au();goFs();if(!camOn)await cam();
  $('#start').hidden=true;phase='test';charge=[0,0,0,0];p1=p2=null;locks=[null,null];
- $('#qb').textContent='🎯 Thử cử chỉ: vẫy tay hoặc đưa đầu vào từng ô – ô sáng xanh khi nhận diện được';
+ $('#qb').textContent='🎯 Thử cử chỉ: vẫy tay qua lại vào từng ô – ô sáng xanh khi nhận diện được';
  $('#qn').textContent='Chế độ thử';$('#tm').textContent='';$('#bf').style.width='0';
  cards.forEach((c,k)=>{c.className='card t'+(k>>1);c.querySelector('span').textContent='Đáp án '+'AB'[k%2]});
- $('#tx').hidden=false;$('#hint').hidden=true;
+ $('#tx').hidden=false;$('#cal').hidden=false;$('#hint').hidden=true;
 };
-$('#tx').onclick=()=>{phase='idle';$('#tx').hidden=true;$('#hint').hidden=false;$('#start').hidden=false;cards.forEach(c=>c.classList.remove('ok'))};
+$('#cal').onclick=()=>{document.activeElement&&document.activeElement.blur();calib()};
+$('#tx').onclick=()=>{phase='idle';$('#tx').hidden=true;$('#cal').hidden=true;calZ=-1;$('#hint').hidden=false;$('#start').hidden=false;cards.forEach(c=>c.classList.remove('ok'))};
 $('#bfs').onclick=()=>{au();fs()};
 $('#cf').onclick=()=>{au();document.activeElement&&document.activeElement.blur();facing=facing=='user'?'environment':'user';cam()};$('#bflip').onclick=()=>{facing=facing=='user'?'environment':'user';cam()};
 addEventListener('keydown',e=>{
